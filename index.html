@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!--
+  Substation Collection Live Dashboard
+  Run: serve this folder with any static server, e.g.
+    npx serve .            or            python -m http.server 8080
+  Then open http://localhost:8080 (register this exact URL as a redirect URI on your ArcGIS OAuth app).
+  Configure everything in the CONFIG object at the top of app.js.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Substation Collection Live Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<section id="login" class="login">
+  <div class="glass login-card">
+    <h1>Substation Collection</h1>
+    <p>Sign in with your ArcGIS account to watch field collection happen live.</p>
+    <button id="btnLogin" class="btn">Sign in with ArcGIS</button>
+    <p id="loginMsg" class="muted"></p>
+  </div>
+</section>
+
+<main id="app" hidden>
+  <header class="top">
+    <div class="brand"><span class="bolt">⚡</span><h1>Substation Collection</h1></div>
+    <div class="right">
+      <div id="pill" class="pill"><i></i><b>LIVE</b><span id="pollInfo">–</span></div>
+      <div id="user" class="avatar" title=""></div>
+      <button id="btnLogout" class="btn ghost">Sign out</button>
+    </div>
+  </header>
+  <div id="banner" class="banner" hidden></div>
+
+  <section class="kpis">
+    <div class="glass kpi"><span>Total features</span><b id="kTotal" class="sk">…</b></div>
+    <div class="glass kpi"><span>Per minute (5-min avg)</span><b id="kMin" class="sk">…</b></div>
+    <div class="glass kpi"><span>Per hour</span><b id="kHr" class="sk">…</b></div>
+    <div class="glass kpi"><span>Today</span><b id="kDay" class="sk">…</b></div>
+    <div class="glass kpi wide"><span>Last submission</span><b id="kLast" class="sk">…</b><small id="kLastSub"></small></div>
+  </section>
+
+  <section class="glass mapwrap"><div id="map"></div><div id="mapNote" class="maplabel">Live collection map</div></section>
+
+  <section class="grid">
+    <div class="glass panel"><h2>Live activity</h2><ul id="feed" class="feed"></ul></div>
+    <div class="glass panel"><h2>Layers</h2>
+      <div class="scroll"><table id="tbl"><thead><tr>
+        <th data-k="name">Layer</th><th data-k="count">Features</th><th data-k="d1">24 h</th></tr></thead><tbody></tbody></table></div></div>
+    <div class="glass panel"><h2 id="lbTitle">Substation leaderboard (24 h)</h2><ol id="lb" class="lb"></ol></div>
+  </section>
+
+  <section class="charts">
+    <div class="glass panel"><h2>Last 24 hours</h2><canvas id="c24"></canvas></div>
+    <div class="glass panel"><h2>Last 7 days</h2><canvas id="c7"></canvas></div>
+  </section>
+</main>
+
+<!-- ArcGIS Maps SDK (identity/OAuth only), Chart.js, MapLibre (loaded lazily from app.js if desired) -->
+<script src="https://js.arcgis.com/4.30/"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+/* Substation Collection Live Dashboard — dark glass theme.
+   Palette: ink #070b14, slate #121a2b, amber #ffb020 (new data), cyan #3ee0d0 (live), text #e6ecf7 */
+:root{--ink:#070b14;--slate:#121a2b;--amber:#ffb020;--cyan:#3ee0d0;--text:#e6ecf7;--mut:#8b97b2;--line:rgba(255,255,255,.09)}
+*{box-sizing:border-box}
+html,body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#16264a 0,transparent 60%),var(--ink);color:var(--text);font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif;min-height:100%}
+h1,h2,b{font-family:"Space Grotesk",sans-serif}
+h1{font-size:20px;margin:0}h2{font-size:15px;margin:0 0 10px;color:var(--mut);font-weight:500}
+[hidden]{display:none!important}
+.glass{background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.muted{color:var(--mut)}
+.btn{background:var(--amber);color:#1a1200;border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn:focus-visible,th:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.login{display:grid;place-items:center;min-height:100vh}.login-card{padding:40px;max-width:420px;text-align:center}
+#app{max-width:1500px;margin:0 auto;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap}
+.brand{display:flex;gap:10px;align-items:center}.bolt{color:var(--amber);font-size:22px}
+.right{display:flex;align-items:center;gap:12px}
+.pill{display:flex;gap:8px;align-items:center;padding:6px 12px;border-radius:99px;border:1px solid var(--line);font-size:12px}
+.pill i{width:9px;height:9px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:beat 1.6s infinite}
+.pill.off i{background:#ff5470;box-shadow:0 0 10px #ff5470;animation:none}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--slate);border:1px solid var(--line);display:grid;place-items:center;font-weight:700}
+.banner{background:rgba(255,84,112,.15);border:1px solid #ff5470;padding:8px 14px;border-radius:10px;margin-bottom:12px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr) 1.6fr;gap:12px;margin-bottom:12px}
+.kpi{padding:14px 16px;display:flex;flex-direction:column;gap:2px}.kpi span{color:var(--mut);font-size:12px}
+.kpi b{font-size:30px;font-weight:700}.kpi.wide b{font-size:20px}.kpi small{color:var(--mut)}
+.kpi.flash{animation:flash 1.2s}
+.sk{color:transparent;background:linear-gradient(90deg,#1a2338,#26324f,#1a2338);background-size:200%;border-radius:6px;animation:sh 1.2s infinite}
+.mapwrap{position:relative;height:460px;overflow:hidden;margin-bottom:12px}#map{position:absolute;inset:0}
+.maplabel{position:absolute;left:12px;top:10px;z-index:2;padding:4px 10px;border-radius:8px;background:rgba(7,11,20,.7);font-size:12px}
+.grid{display:grid;grid-template-columns:1.2fr 1.2fr 1fr;gap:12px;margin-bottom:12px}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.panel{padding:14px 16px;min-width:0}.scroll,.feed{max-height:340px;overflow:auto}
+.feed,.lb{list-style:none;margin:0;padding:0}.lb{counter-reset:n}
+.feed li{padding:8px 10px;border-bottom:1px solid var(--line);display:grid;gap:2px}
+.feed li.new{animation:flash 2s;border-left:3px solid var(--amber)}.feed small{color:var(--mut)}
+.lb li{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)}
+.lb li div{height:4px;background:var(--cyan);border-radius:3px;margin-top:4px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}
+th{cursor:pointer;color:var(--mut);font-weight:500;position:sticky;top:0;background:#101728}td:nth-child(n+2),th:nth-child(n+2){text-align:right}
+tbody tr:hover{background:rgba(255,255,255,.05)}
+.pulse{width:18px;height:18px;border-radius:50%;border:3px solid var(--amber);animation:burst 2.4s ease-out forwards;pointer-events:none}
+.maplibregl-popup-content{background:var(--slate);color:var(--text);border-radius:10px}.maplibregl-popup-tip{display:none}
+@keyframes beat{50%{opacity:.35}}@keyframes sh{to{background-position:-200%}}
+@keyframes flash{0%{background:rgba(255,176,32,.35)}100%{background:transparent}}
+@keyframes burst{0%{transform:scale(.4);opacity:1}100%{transform:scale(7);opacity:0}}
+@media(max-width:1000px){.kpis{grid-template-columns:1fr 1fr}.grid,.charts{grid-template-columns:1fr}.mapwrap{height:340px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
