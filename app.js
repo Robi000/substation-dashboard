@@ -8,7 +8,7 @@ const CONFIG = {
   // FeatureServer base URL (no trailing slash, no layer id)
   serviceUrl: "https://services3.arcgis.com/XEcKZFAaYrAyY47P/arcgis/rest/services/Substation_Infrastructure/FeatureServer",
   portalUrl: "https://www.arcgis.com",       // ArcGIS Online or your Enterprise portal
-  appId: "YOUR_OAUTH_APP_CLIENT_ID",          // Client ID of an OAuth app item; add this page's URL as a redirect URI
+  appId: "aTIU8ad6c2WbScWH",          // Client ID of an OAuth app item; add this page's URL as a redirect URI
   layerIds: Array.from({ length: 27 }, (_, i) => i), // 0..26
   substationLayerId: 0,                       // layer holding substation points
   feederLayerId: 26,                          // layer holding feeder polylines
