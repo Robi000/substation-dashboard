@@ -28,7 +28,7 @@ const CONFIG = {
   // "@editTracking" = the layer's editFieldsInfo creator/creation fields (system maintained, most reliable).
   createdDateFields: ["@editTracking", "created_date"],
   createdUserFields: ["@editTracking", "created_user"],
-  basemapTiles: ["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"]
+  basemapStyle: "https://tiles.openfreemap.org/styles/dark" // Public vector basemap, no key required
 };
 
 /* ---------- State & utils ---------- */
@@ -267,20 +267,72 @@ function renderCharts() {
   mk("c24", "line", b.hl, b.h); mk("c7", "bar", b.dl, b.dd);
 }
 
-/* ---------- Map (MapLibre GL; lazy-loaded after KPIs, hidden if the library failed) ---------- */
-async function initMap() {
-  if (typeof maplibregl === "undefined") { document.querySelector(".mapwrap").hidden = true; return; }
+/* ---------- Map (MapLibre GL) ---------- */
+async function loadBasemap() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
   try {
-    const map = S.map = new maplibregl.Map({ container: "map", center: [39.5, 9], zoom: 5,
-      style: { version: 8, sources: { b: { type: "raster", tiles: CONFIG.basemapTiles, tileSize: 256 } }, layers: [{ id: "b", type: "raster", source: "b" }] } });
+    const response = await fetch(CONFIG.basemapStyle, { signal: controller.signal });
+    if (!response.ok) throw new Error("Basemap HTTP " + response.status);
+    const style = await response.json();
+    if (style.version !== 8 || !style.sources || !Array.isArray(style.layers)) {
+      throw new Error("Invalid MapLibre basemap style");
+    }
+    return { style, fallback: false };
+  } catch (error) {
+    console.warn("Basemap unavailable", error);
+    return {
+      fallback: true,
+      style: {
+        version: 8,
+        sources: {},
+        layers: [{ id: "background", type: "background", paint: { "background-color": "#101826" } }]
+      }
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+async function initMap() {
+  const note = $("#mapNote");
+  if (typeof maplibregl === "undefined") { note.textContent = "Map library could not load"; return; }
+  note.textContent = "Loading map…";
+  try {
+    const { style, fallback } = await loadBasemap();
+    const baseSources = new Set(Object.keys(style.sources));
+    let basemapFailed = fallback;
+    const map = S.map = new maplibregl.Map({ container: "map", center: [39.5, 9], zoom: 5, style });
+    const status = message => {
+      note.textContent = basemapFailed ? "Basemap unavailable · " + message : message;
+    };
+    let mapStatus = "Loading collection layers…";
+    map.on("error", event => {
+      const sourceId = event.sourceId ?? event.source?.id;
+      if (baseSources.has(sourceId)) {
+        basemapFailed = true;
+        status(mapStatus);
+      }
+    });
     map.addControl(new maplibregl.NavigationControl(), "top-right");
-    await new Promise(r => map.on("load", r));
-    const pts = { type: "FeatureCollection", features: [...S.subs.values()].filter(s => s.x != null).map(s => ({ type: "Feature", geometry: { type: "Point", coordinates: [s.x, s.y] }, properties: { key: s.key, name: s.name } })) };
+    await new Promise((resolve, reject) => {
+      const ready = () => { clearTimeout(timer); resolve(); };
+      const timer = setTimeout(() => {
+        map.off("style.load", ready);
+        reject(new Error("Map style did not initialise"));
+      }, 12000);
+      if (map.isStyleLoaded()) ready();
+      else map.once("style.load", ready);
+    });
+    status(mapStatus);
+    const pts = { type: "FeatureCollection", features: [...S.subs.values()]
+      .filter(s => Number.isFinite(s.x) && Number.isFinite(s.y) && Math.abs(s.x) <= 180 && Math.abs(s.y) <= 90)
+      .map(s => ({ type: "Feature", geometry: { type: "Point", coordinates: [s.x, s.y] }, properties: { key: s.key, name: s.name } })) };
     let lines = { type: "FeatureCollection", features: [] };
+    let feederLoadFailed = false;
     try {
       const fs = await queryAll(CONFIG.feederLayerId, { where: "1=1", outFields: "OBJECTID", returnGeometry: true, outSR: 4326, maxAllowableOffset: 0.001 });
       lines.features = fs.filter(f => f.geometry?.paths).map(f => ({ type: "Feature", properties: {}, geometry: { type: "MultiLineString", coordinates: f.geometry.paths } }));
-    } catch (e) { console.warn("feeders", e); }
+    } catch (e) { feederLoadFailed = true; console.warn("feeders", e); }
     map.addSource("feeders", { type: "geojson", data: lines }); map.addSource("subs", { type: "geojson", data: pts });
     map.addLayer({ id: "feeder-glow", type: "line", source: "feeders", paint: { "line-color": "#3ee0d0", "line-width": 5, "line-opacity": .12, "line-blur": 4 } });
     map.addLayer({ id: "feeder-flow", type: "line", source: "feeders", paint: { "line-color": "#3ee0d0", "line-width": 1.6, "line-dasharray": [0, 4, 3] } });
@@ -301,9 +353,23 @@ async function initMap() {
       new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<b>${esc(p.name)}</b><br>${mine.length} submissions (${CONFIG.historyDays} d)<br>` +
         Object.entries(by).slice(0, 8).map(([k, v]) => `${esc(k)}: ${v}`).join("<br>")).addTo(map);
     });
-    if (pts.features.length > 1) { const b = new maplibregl.LngLatBounds(); pts.features.forEach(f => b.extend(f.geometry.coordinates)); map.fitBounds(b, { padding: 50, maxZoom: 9 }); }
+    const bounds = new maplibregl.LngLatBounds();
+    pts.features.forEach(f => bounds.extend(f.geometry.coordinates));
+    if (!pts.features.length) {
+      lines.features.forEach(f => f.geometry.coordinates.forEach(path => path.forEach(point => bounds.extend(point))));
+    }
+    if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 50, maxZoom: 9 });
+    mapStatus = pts.features.length || lines.features.length
+      ? `${pts.features.length} substations mapped · ${feederLoadFailed ? "Feeders unavailable" : lines.features.length + " feeders mapped"}`
+      : `No valid substation or feeder geometry loaded${feederLoadFailed ? " · Feeder query failed" : ""}`;
+    status(mapStatus);
     S.mapReady = true;
-  } catch (e) { console.warn("map", e); document.querySelector(".mapwrap").hidden = true; }
+  } catch (e) {
+    console.warn("map", e);
+    S.map?.remove();
+    S.map = null;
+    note.textContent = "Map could not start · collection metrics remain available";
+  }
 }
 function pulseAt(e) { // expanding ring where a new feature landed
   if (!S.mapReady) return;
