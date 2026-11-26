@@ -310,12 +310,13 @@ async function initMap() {
   note.textContent = "Loading map…";
   try {
     const { style, fallback } = await loadBasemap("dark"); const m = S.map = new maplibregl.Map({ container: "map", center: [39.5, 9], zoom: 5, style, maxPitch: 75 });
+    const styleReady = new Promise((res, rej) => { const t = setTimeout(() => rej(new Error("Map style did not initialise")), 20000); m.once("style.load", () => { clearTimeout(t); res(); }); });
     m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right"); m.addControl(new maplibregl.ScaleControl(), "bottom-left");
     m.addControl(new maplibregl.FullscreenControl(), "top-right"); m.addControl(new maplibregl.GeolocateControl({ trackUserLocation: false }), "top-right");
     try { const fs = await queryAll(CONFIG.feederLayerId, { where: "1=1", outFields: "OBJECTID,name,voltage_kv,length_km", returnGeometry: true, outSR: 4326, maxAllowableOffset: 0.001 });
       S.feedGeo.features = fs.filter(f => f.geometry?.paths).map(f => ({ type: "Feature", properties: f.attributes, geometry: { type: "MultiLineString", coordinates: f.geometry.paths } })); } catch (e) { console.warn("feeders", e); }
     $("#subList").innerHTML = [...S.subs.values()].map(s => `<option value="${esc(s.name)}">`).join("");
-    await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error("Map style did not initialise")), 12000); m.once("style.load", () => { clearTimeout(t); res(); }); });
+    await styleReady;
     m.on("style.load", () => { if (S.mapReady) addLayers(); });
     addLayers(); S.mapReady = true; bindUi(); fitAll();
     const tip = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 }), over = (id, fn) => { m.on("mousemove", id, e => { if (S.measure) return; m.getCanvas().style.cursor = "pointer"; tip.setLngLat(e.lngLat).setHTML(fn(e.features[0].properties)).addTo(m); }); m.on("mouseleave", id, () => { if (!S.measure) m.getCanvas().style.cursor = ""; tip.remove(); }); };
