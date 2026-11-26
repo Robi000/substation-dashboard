@@ -45,7 +45,19 @@
     <div class="glass kpi wide"><span>Last submission</span><b id="kLast" class="sk">…</b><small id="kLastSub"></small></div>
   </section>
 
-  <section class="glass mapwrap"><div id="map"></div><div id="mapNote" class="maplabel">Live collection map</div></section>
+  <section class="glass mapwrap"><div id="map"></div><div id="mapNote" class="maplabel">Live collection map</div>
+    <div class="mtools glass">
+      <input type="text" id="mapSearch" list="subList" placeholder="Find substation…"><datalist id="subList"></datalist>
+      <label><input type="checkbox" data-v="subs" checked>Substations</label>
+      <label><input type="checkbox" data-v="feeders" checked>Feeders</label>
+      <label><input type="checkbox" data-v="heat" checked>Heat</label>
+      <label><input type="checkbox" data-v="bars">3D bars</label>
+      <label><input type="checkbox" data-v="devs">Devices</label>
+      <select id="baseSel"><option value="dark">Dark</option><option value="sat">Satellite</option><option value="light">Light</option></select>
+      <button id="bFit" type="button">Fit all</button><button id="b3d" type="button">Tilt 3D</button>
+      <button id="bFollow" type="button">Follow live</button><button id="bReplay" type="button">Replay 24 h</button>
+      <button id="bMeasure" type="button">Measure</button><button id="bClear" type="button" hidden>Clear filter</button>
+    </div><div id="coord" class="coord"></div></section>
 
   <section class="grid">
     <div class="glass panel"><h2>Live activity</h2><ul id="feed" class="feed"></ul></div>
@@ -61,10 +73,10 @@
   </section>
 </main>
 
-<!-- Load the UMD bundles before the ArcGIS AMD loader so they register as browser globals. -->
+<!-- Load UMD bundles before the ArcGIS AMD loader so they register as browser globals. -->
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script defer src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script defer src="https://js.arcgis.com/4.30/"></script>
-<script defer src="app.js?v=basemap-fix-1"></script>
+<script defer src="app.js?v=map-2"></script>
 </body>
 </html>
