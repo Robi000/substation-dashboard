@@ -46,3 +46,13 @@ tbody tr:hover{background:rgba(255,255,255,.05)}
 @keyframes burst{0%{transform:scale(.4);opacity:1}100%{transform:scale(7);opacity:0}}
 @media(max-width:1000px){.kpis{grid-template-columns:1fr 1fr}.grid,.charts{grid-template-columns:1fr}.mapwrap{height:340px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+
+/* ---- Interactive map toolbar ---- */
+.mtools{position:absolute;z-index:3;left:12px;top:44px;right:60px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:8px 10px;font-size:12px;max-width:calc(100% - 72px)}
+.mtools input[type=text],.mtools select{background:#0c1424;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit}
+.mtools label{display:flex;gap:4px;align-items:center;cursor:pointer}
+.mtools button{background:#0c1424;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font:inherit;cursor:pointer}
+.mtools button:hover,.mtools button.on{border-color:var(--amber);color:var(--amber)}
+.coord{position:absolute;right:12px;bottom:8px;z-index:3;font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(7,11,20,.7)}
+.mapwrap{height:640px}.feed li{cursor:pointer}.feed li:hover{background:rgba(255,255,255,.05)}
+@media(max-width:1000px){.mapwrap{height:560px}.mtools{max-width:none}}
