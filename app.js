@@ -242,10 +242,10 @@ const devColor = () => { const a = ["match", ["get", "layer"]]; for (let i = 1; 
 const GROUPS = { subs: ["glow", "core", "fresh-dot"], feeders: ["feeder-glow", "feeder-flow", "feeder-hit"], heat: ["heat"], bars: ["bars"], devs: ["dev-cl", "dev-pt"] };
 function applyVis() { const m = S.map; Object.entries(GROUPS).forEach(([k, ids]) => ids.forEach(id => m.getLayer(id) && m.setLayoutProperty(id, "visibility", S.vis[k] ? "visible" : "none"))); }
 function addLayers() { // runs on every style load (basemap switch re-creates everything)
-  const m = S.map, g = subsGeo(), add = (id, data, extra = {}) => m.addSource(id, { type: "geojson", data, ...extra });
+  const m = S.map, g = subsGeo(), add = (id, data, extra = {}) => { try { m.addSource(id, { type: "geojson", data, ...extra }); } catch (e) { console.warn("source", id, e); } };
   add("feeders", S.feedGeo); add("subs", g.pts); add("bars", g.bars); add("fresh", S.freshGeo); add("sel", { type: "FeatureCollection", features: [] });
   add("devs", S.devGeo, { cluster: true, clusterRadius: 45, clusterMaxZoom: 13 }); add("meas", { type: "FeatureCollection", features: [] });
-  const L = x => m.addLayer(x);
+  S.errs = []; const L = x => { try { m.addLayer(x); } catch (e) { console.warn("layer", x.id, e); S.errs.push(x.id + ": " + e.message); } };
   L({ id: "feeder-glow", type: "line", source: "feeders", paint: { "line-color": "#3ee0d0", "line-width": 6, "line-opacity": .12, "line-blur": 4 } });
   L({ id: "feeder-flow", type: "line", source: "feeders", paint: { "line-color": "#3ee0d0", "line-width": 1.8, "line-dasharray": [0, 4, 3] } });
   L({ id: "feeder-hit", type: "line", source: "feeders", paint: { "line-width": 14, "line-opacity": 0 } });
@@ -264,7 +264,7 @@ function addLayers() { // runs on every style load (basemap switch re-creates ev
 function setSel(key, fly) {
   S.sel = key || null; const m = S.map, s = key && S.subs.get(key);
   m?.getSource("sel")?.setData({ type: "FeatureCollection", features: s && Number.isFinite(s.x) ? [{ type: "Feature", geometry: { type: "Point", coordinates: [s.x, s.y] }, properties: {} }] : [] });
-  $("#bClear").hidden = !S.sel; if (fly && s && Number.isFinite(s.x)) m.flyTo({ center: [s.x, s.y], zoom: Math.max(m.getZoom(), 11), speed: .9 });
+  const bc = $("#bClear"); if (bc) bc.hidden = !S.sel; if (fly && s && Number.isFinite(s.x)) m.flyTo({ center: [s.x, s.y], zoom: Math.max(m.getZoom(), 11), speed: .9 });
   renderFeed([]);
   if (s) { const mine = S.events.filter(x => x.subKey === key), by = {}; mine.forEach(x => { const n = S.meta[x.layer]?.name; by[n] = (by[n] || 0) + 1; });
     if (fly !== false) new maplibregl.Popup({ offset: 16 }).setLngLat([s.x, s.y]).setHTML(`<b>${esc(s.name)}</b><br>${mine.length} submissions (${CONFIG.historyDays} d)<br>${Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => `${esc(k)}: ${v}`).join("<br>") || "No recent activity"}`).addTo(m); }
@@ -318,7 +318,7 @@ async function initMap() {
     $("#subList").innerHTML = [...S.subs.values()].map(s => `<option value="${esc(s.name)}">`).join("");
     await styleReady;
     m.on("style.load", () => { if (S.mapReady) addLayers(); });
-    addLayers(); S.mapReady = true; bindUi(); fitAll();
+    addLayers(); S.mapReady = true; try { bindUi(); } catch (e) { console.warn("bindUi", e); S.errs.push("toolbar: " + e.message); } try { fitAll(); } catch (e) { console.warn("fit", e); } refreshMapData();
     const tip = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 }), over = (id, fn) => { m.on("mousemove", id, e => { if (S.measure) return; m.getCanvas().style.cursor = "pointer"; tip.setLngLat(e.lngLat).setHTML(fn(e.features[0].properties)).addTo(m); }); m.on("mouseleave", id, () => { if (!S.measure) m.getCanvas().style.cursor = ""; tip.remove(); }); };
     over("core", p => `<b>${esc(p.name)}</b><br>${p.recent} in 24 h · ${p.live} in last 5 min`); over("feeder-hit", p => `<b>${esc(p.name || "Feeder")}</b><br>${p.voltage_kv ? p.voltage_kv + " kV · " : ""}${p.length_km ? Number(p.length_km).toFixed(1) + " km" : ""}`);
     over("dev-pt", p => `<b>${esc(p.lname)}</b>`);
@@ -333,8 +333,8 @@ async function initMap() {
     (function anim(ts) { if (ts - last > 90) { last = ts; step = (step + 1) % seq.length;
       if (m.getLayer("feeder-flow")) m.setPaintProperty("feeder-flow", "line-dasharray", seq[step]);
       if (m.getLayer("glow")) m.setPaintProperty("glow", "circle-radius", ["+", 12 + 4 * Math.sin(ts / 350), ["*", ["get", "live"], 3]]); } requestAnimationFrame(anim); })(0);
-    note.textContent = `${S.subs.size} substations · ${S.feedGeo.features.length} feeders${fallback ? " · basemap unavailable" : ""}`;
-  } catch (e) { console.warn("map", e); S.map?.remove(); S.map = null; S.mapReady = false; note.textContent = "Map could not start · metrics remain available"; }
+    note.textContent = `build map-3 · ${S.subs.size} substations · ${S.feedGeo.features.length} feeders${fallback ? " · basemap unavailable" : ""}${S.errs.length ? " · problems: " + S.errs.join("; ") : ""}`;
+  } catch (e) { console.warn("map", e); note.textContent = "Map error: " + (e.message || e) + " · metrics still work"; }
 }
 
 /* ---------- Bootstrap ---------- */
