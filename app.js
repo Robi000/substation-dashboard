@@ -44,18 +44,58 @@ function banner(msg) { const b = $("#banner"); b.textContent = msg; b.hidden = !
 
 /* ---------- Auth (ArcGIS Maps SDK identity + OAuth 2.0) ---------- */
 function initAuth() {
-  if (typeof require === "undefined") { $("#loginMsg").textContent = "ArcGIS SDK failed to load (CDN blocked)."; return; }
-  require(["esri/identity/OAuthInfo", "esri/identity/IdentityManager"], (OAuthInfo, esriId) => {
-    S.esriId = esriId;
-    const info = new OAuthInfo({ appId: CONFIG.appId, portalUrl: CONFIG.portalUrl, popup: false, flowType: "authorization-code" });
-    esriId.registerOAuthInfos([info]);
-    $("#btnLogin").onclick = () => signIn();
-    $("#btnLogout").onclick = () => { esriId.destroyCredentials(); location.reload(); };
-    esriId.checkSignInStatus(CONFIG.portalUrl + "/sharing").then(onSignedIn).catch(() => { $("#login").hidden = false; });
+  const button = $("#btnLogin");
+  const message = $("#loginMsg");
+  const clientId = CONFIG.appId?.trim();
+  if (!clientId) {
+    message.textContent = "Enter your ArcGIS OAuth Client ID in CONFIG.appId.";
+    return;
+  }
+  if (typeof window.require !== "function") {
+    message.textContent = "The ArcGIS SDK did not load. Check your connection and reload this page.";
+    return;
+  }
+  const fail = error => {
+    console.error("ArcGIS sign-in setup failed", error);
+    message.textContent = "ArcGIS sign-in could not start. Check the OAuth configuration and reload.";
+  };
+  const timeout = setTimeout(() => fail(new Error("ArcGIS identity modules timed out")), 15000);
+  window.require(["esri/identity/OAuthInfo", "esri/identity/IdentityManager"], (OAuthInfo, esriId) => {
+    clearTimeout(timeout);
+    try {
+      const portal = new URL(CONFIG.portalUrl);
+      if (portal.protocol !== "https:") throw new Error("Use an HTTPS ArcGIS portal URL.");
+      const portalUrl = portal.href.replace(/\/+$/, "");
+      const sharing = portalUrl + "/sharing";
+      const info = new OAuthInfo({ appId: clientId, portalUrl, popup: false, flowType: "authorization-code" });
+      esriId.registerOAuthInfos([info]);
+      S.esriId = esriId;
+
+      button.onclick = async () => {
+        button.disabled = true;
+        message.textContent = "Opening ArcGIS sign-in…";
+        try {
+          onSignedIn(await esriId.getCredential(sharing));
+        } catch (error) {
+          message.textContent = "Sign-in failed: " + (error.message || error);
+          button.disabled = false;
+        }
+      };
+      $("#btnLogout").onclick = () => { esriId.destroyCredentials(); location.reload(); };
+      esriId.checkSignInStatus(sharing).then(onSignedIn, () => {
+        message.textContent = "";
+        button.disabled = false;
+      });
+    } catch (error) {
+      fail(error);
+    }
+  }, error => {
+    clearTimeout(timeout);
+    fail(error);
   });
 }
-function signIn() { S.esriId.getCredential(CONFIG.portalUrl + "/sharing").then(onSignedIn).catch(e => $("#loginMsg").textContent = "Sign-in failed: " + (e.message || e)); }
 function onSignedIn(cred) {
+  if (S.token) return; // An existing session and a click can resolve together.
   S.token = cred.token; S.user = cred.userId;
   $("#login").hidden = true; $("#app").hidden = false;
   $("#user").textContent = (cred.userId || "?")[0].toUpperCase(); $("#user").title = cred.userId;
@@ -215,10 +255,12 @@ function renderLeaderboard() {
   $("#lb").innerHTML = rows.map(r => `<li><span>${esc(r.n)}<div style="width:${Math.max(4, r.c / mx * 100)}%"></div></span><b>${r.c}</b></li>`).join("") || '<li class="muted">No activity in the last 24 hours</li>';
 }
 function renderCharts() {
-  if (typeof Chart === "undefined") { document.querySelector(".charts").hidden = true; return; }
+  if (typeof window.Chart !== "function") { document.querySelector(".charts").hidden = true; return; }
   const b = buckets();
   const mk = (id, type, labels, data) => {
-    if (!S.charts[id]) S.charts[id] = new Chart($("#" + id), { type, data: { labels, datasets: [{ data, borderColor: "#3ee0d0", backgroundColor: type === "bar" ? "#ffb020" : "rgba(62,224,208,.18)", fill: true, tension: .35, borderRadius: 4 }] },
+    const context = $("#" + id)?.getContext("2d");
+    if (!context) return;
+    if (!S.charts[id]) S.charts[id] = new window.Chart(context, { type, data: { labels, datasets: [{ data, borderColor: "#3ee0d0", backgroundColor: type === "bar" ? "#ffb020" : "rgba(62,224,208,.18)", fill: true, tension: .35, borderRadius: 4 }] },
       options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#8b97b2" }, grid: { display: false } }, y: { beginAtZero: true, ticks: { color: "#8b97b2", precision: 0 }, grid: { color: "rgba(255,255,255,.06)" } } } } });
     else { const c = S.charts[id]; c.data.labels = labels; c.data.datasets[0].data = data; c.update(); }
   };
@@ -287,4 +329,4 @@ async function start() {
   S.timers.push(setInterval(() => poll().catch(e => { banner("Poll failed, retrying: " + e.message); $("#pill").classList.add("off"); }), CONFIG.pollSeconds * 1000));
   S.timers.push(setInterval(fullSync, CONFIG.resyncSeconds * 1000));
 }
-window.addEventListener("load", initAuth);
+window.addEventListener("DOMContentLoaded", initAuth);
