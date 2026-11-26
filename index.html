@@ -21,8 +21,8 @@
   <div class="glass login-card">
     <h1>Substation Collection</h1>
     <p>Sign in with your ArcGIS account to watch field collection happen live.</p>
-    <button id="btnLogin" class="btn">Sign in with ArcGIS</button>
-    <p id="loginMsg" class="muted"></p>
+    <button id="btnLogin" class="btn" type="button" disabled>Sign in with ArcGIS</button>
+    <p id="loginMsg" class="muted" role="status">Loading ArcGIS sign-in…</p>
   </div>
 </section>
 
@@ -61,10 +61,10 @@
   </section>
 </main>
 
-<!-- ArcGIS Maps SDK (identity/OAuth only), Chart.js, MapLibre (loaded lazily from app.js if desired) -->
-<script src="https://js.arcgis.com/4.30/"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="app.js"></script>
+<!-- Load the UMD bundles before the ArcGIS AMD loader so they register as browser globals. -->
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script defer src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script defer src="https://js.arcgis.com/4.30/"></script>
+<script defer src="app.js?v=signin-fix-1"></script>
 </body>
 </html>
