@@ -242,6 +242,7 @@ const devColor = () => { const a = ["match", ["get", "layer"]]; for (let i = 1; 
 const GROUPS = { subs: ["glow", "core", "fresh-dot"], feeders: ["feeder-glow", "feeder-flow", "feeder-hit"], heat: ["heat"], bars: ["bars"], devs: ["dev-cl", "dev-pt"] };
 function applyVis() { const m = S.map; Object.entries(GROUPS).forEach(([k, ids]) => ids.forEach(id => m.getLayer(id) && m.setLayoutProperty(id, "visibility", S.vis[k] ? "visible" : "none"))); }
 function addLayers() { // runs on every style load (basemap switch re-creates everything)
+  if (S.map.getSource("subs") && S.map.getLayer("core")) return; // already present
   const m = S.map, g = subsGeo(), add = (id, data, extra = {}) => { try { m.addSource(id, { type: "geojson", data, ...extra }); } catch (e) { console.warn("source", id, e); } };
   add("feeders", S.feedGeo); add("subs", g.pts); add("bars", g.bars); add("fresh", S.freshGeo); add("sel", { type: "FeatureCollection", features: [] });
   add("devs", S.devGeo, { cluster: true, clusterRadius: 45, clusterMaxZoom: 13 }); add("meas", { type: "FeatureCollection", features: [] });
@@ -290,7 +291,7 @@ function startReplay() {
 function bindUi() {
   const m = S.map, $$ = s => document.querySelectorAll(s);
   $$(".mtools [data-v]").forEach(c => c.onchange = () => { S.vis[c.dataset.v] = c.checked; applyVis(); if (c.dataset.v === "devs" && c.checked) loadDevices(); if (c.dataset.v === "bars" && c.checked) m.easeTo({ pitch: 55, duration: 800 }); });
-  $("#baseSel").onchange = async e => { const { style } = await loadBasemap(e.target.value); m.setStyle(style); };
+  $("#baseSel").onchange = async e => { const { style } = await loadBasemap(e.target.value); m.setStyle(style, { diff: false }); };
   $("#bFit").onclick = fitAll; $("#bClear").onclick = () => setSel(null);
   $("#b3d").onclick = () => { const on = m.getPitch() < 10; m.easeTo({ pitch: on ? 60 : 0, bearing: on ? -20 : 0, duration: 900 }); };
   $("#bFollow").onclick = e => { S.follow = !S.follow; e.target.classList.toggle("on", S.follow); };
